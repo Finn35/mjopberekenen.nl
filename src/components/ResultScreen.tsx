@@ -94,6 +94,9 @@ export function ResultScreen({
       });
       const domain = email.trim().split("@")[1] || "";
       trackEvent("upgrade_submit", { email_domain: domain });
+      if (typeof window !== "undefined" && typeof (window as Record<string, unknown>).gtag_report_conversion === "function") {
+        (window as Record<string, unknown> & { gtag_report_conversion: () => void }).gtag_report_conversion();
+      }
       setStatus("success");
     } catch {
       setStatus("error");
