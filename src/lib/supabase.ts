@@ -36,3 +36,17 @@ export async function saveContactMessage(contact: {
   const { error } = await supabase.from("contacts").insert(contact);
   if (error) throw error;
 }
+
+export async function saveMjopInterest(interest: {
+  email: string;
+  apartments: number;
+  bouwjaar: number;
+  total_estimate: number;
+  monthly_contribution: number;
+  lift: boolean;
+  dak_condition: string;
+  gevel_condition: string;
+}) {
+  const { error } = await supabase.from("mjop_interest").insert(interest);
+  if (error) throw error;
+}

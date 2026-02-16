@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CalculationInput, CalculationResult } from "@/types/calculator";
+import { saveMjopInterest } from "@/lib/supabase";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("nl-NL", {
@@ -15,7 +16,6 @@ interface Props {
   input: CalculationInput;
   result: CalculationResult;
   calculationId: string | null;
-  onRequestPdf: (email: string) => Promise<void>;
 }
 
 const resultCards = [
@@ -55,17 +55,26 @@ export function ResultScreen({
   input,
   result,
   calculationId,
-  onRequestPdf,
 }: Props) {
   const [email, setEmail] = useState("");
+  const [optIn, setOptIn] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleInterestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !optIn) return;
     setStatus("loading");
     try {
-      await onRequestPdf(email.trim());
+      await saveMjopInterest({
+        email: email.trim(),
+        apartments: input.apartments,
+        bouwjaar: input.bouwjaar,
+        total_estimate: result.total_estimate,
+        monthly_contribution: result.monthly_per_unit,
+        lift: input.lift,
+        dak_condition: input.dak_conditie,
+        gevel_condition: input.gevel_conditie,
+      });
       setStatus("success");
     } catch {
       setStatus("error");
@@ -151,7 +160,7 @@ export function ResultScreen({
         </div>
       </div>
 
-      {/* Email / PDF CTA */}
+      {/* MJOP Interest CTA */}
       <div className="overflow-hidden rounded-2xl border-2 border-gray-100 bg-gradient-to-br from-[#f0fdf4] to-white p-4 sm:p-6 md:p-8">
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="hidden shrink-0 rounded-xl bg-[#2E5E4E]/10 p-3 sm:block">
@@ -161,10 +170,31 @@ export function ResultScreen({
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-bold text-[#1a1a2e] sm:text-lg">
-              Ontvang uw MJOP-overzicht als PDF
+              Wilt u een uitgebreid MJOP-rapport?
             </h3>
-            <p className="mt-1 text-xs text-[#64748b] sm:text-sm">
-              Inclusief samenvatting van uw invoer, 10-jaarsinschatting en maandelijkse aanbeveling.
+            <p className="mt-2 text-xs leading-relaxed text-[#64748b] sm:text-sm">
+              Wij werken aan een uitgebreid MJOP-rapport met:
+            </p>
+            <ul className="mt-2 space-y-1.5 text-xs text-[#64748b] sm:text-sm">
+              <li className="flex items-start gap-2">
+                <span className="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-[#2E5E4E]/40" />
+                Gedetailleerde 10-jaarsplanning
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-[#2E5E4E]/40" />
+                Reserve-opbouw simulatie
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-[#2E5E4E]/40" />
+                Prioriteitenoverzicht
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-[#2E5E4E]/40" />
+                Professioneel PDF-document
+              </li>
+            </ul>
+            <p className="mt-3 text-xs text-[#64748b] sm:text-sm">
+              Wilt u als eerste toegang wanneer dit beschikbaar is?
             </p>
 
             {status === "success" ? (
@@ -175,37 +205,49 @@ export function ResultScreen({
                 <div>
                   <p className="text-sm font-semibold text-[#2E5E4E]">Bedankt!</p>
                   <p className="mt-0.5 text-xs text-[#2E5E4E]/80 sm:text-sm">
-                    U ontvangt binnen enkele minuten een e-mail met uw rapport.
-                    Controleer ook uw spam-map.
+                    We houden u op de hoogte zodra het uitgebreide MJOP-rapport beschikbaar is.
                   </p>
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:flex-row sm:gap-3">
+              <form onSubmit={handleInterestSubmit} className="mt-4 space-y-3 sm:mt-5">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="uw@email.nl"
+                  placeholder="Uw e-mailadres"
                   required
                   disabled={status === "loading"}
-                  className="h-12 w-full rounded-xl border-2 border-gray-200 bg-white px-4 text-base text-[#1a1a2e] transition-all duration-200 placeholder:text-gray-400 hover:border-gray-300 focus:border-[#2E5E4E] focus:outline-none focus:ring-4 focus:ring-[#2E5E4E]/10 disabled:opacity-60 sm:flex-1"
+                  className="h-12 w-full rounded-xl border-2 border-gray-200 bg-white px-4 text-base text-[#1a1a2e] transition-all duration-200 placeholder:text-gray-400 hover:border-gray-300 focus:border-[#2E5E4E] focus:outline-none focus:ring-4 focus:ring-[#2E5E4E]/10 disabled:opacity-60"
                 />
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={optIn}
+                    onChange={(e) => setOptIn(e.target.checked)}
+                    required
+                    disabled={status === "loading"}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[#2E5E4E] accent-[#2E5E4E] focus:ring-[#2E5E4E]"
+                  />
+                  <span className="text-xs text-[#64748b] sm:text-sm">
+                    Ja, ik wil op de hoogte gehouden worden.
+                  </span>
+                </label>
                 <button
                   type="submit"
-                  disabled={status === "loading"}
-                  className="inline-flex h-12 shrink-0 items-center justify-center rounded-xl bg-[#2E5E4E] px-5 text-sm font-semibold text-white shadow-md shadow-[#2E5E4E]/15 transition-all duration-200 hover:bg-[#234a3d] hover:shadow-lg disabled:opacity-60 sm:px-6"
+                  disabled={status === "loading" || !optIn}
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#2E5E4E] px-5 text-sm font-semibold text-white shadow-md shadow-[#2E5E4E]/15 transition-all duration-200 hover:bg-[#234a3d] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-8"
                 >
                   {status === "loading" ? (
                     <>
                       <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Versturen…
+                      Verzenden…
                     </>
                   ) : (
                     <>
-                      Verstuur rapport
+                      Informeer mij
                       <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                       </svg>
                     </>
                   )}

@@ -158,20 +158,6 @@ export function CalculatorSection() {
     }
   }, [basis, onderhoud, scrollToCalculator]);
 
-  const handleRequestPdf = useCallback(
-    async (email: string) => {
-      if (!calculationId) {
-        throw new Error("Geen berekening gevonden.");
-      }
-      const res = await fetch("/api/request-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ calculationId, email }),
-      });
-      if (!res.ok) throw new Error("Request failed");
-    },
-    [calculationId]
-  );
 
   return (
     <>
@@ -260,7 +246,6 @@ export function CalculatorSection() {
                 input={{ ...basis, ...onderhoud }}
                 result={result}
                 calculationId={calculationId}
-                onRequestPdf={handleRequestPdf}
               />
             )}
           </div>
