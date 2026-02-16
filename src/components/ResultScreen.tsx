@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { CalculationInput, CalculationResult } from "@/types/calculator";
 import { saveMjopInterest } from "@/lib/supabase";
+import { trackEvent } from "@/lib/tracking";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("nl-NL", {
@@ -59,6 +60,22 @@ export function ResultScreen({
   const [email, setEmail] = useState("");
   const [optIn, setOptIn] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const upgradeInterestTracked = useRef(false);
+
+  useEffect(() => {
+    trackEvent("result_view", {
+      apartments: input.apartments,
+      bouwjaar: input.bouwjaar,
+      monthly_contribution: result.monthly_per_unit,
+      total_estimate: result.total_estimate,
+    });
+  }, [input.apartments, input.bouwjaar, result.monthly_per_unit, result.total_estimate]);
+
+  const handleEmailFocus = () => {
+    if (upgradeInterestTracked.current) return;
+    upgradeInterestTracked.current = true;
+    trackEvent("upgrade_interest");
+  };
 
   const handleInterestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +92,8 @@ export function ResultScreen({
         dak_condition: input.dak_conditie,
         gevel_condition: input.gevel_conditie,
       });
+      const domain = email.trim().split("@")[1] || "";
+      trackEvent("upgrade_submit", { email_domain: domain });
       setStatus("success");
     } catch {
       setStatus("error");
@@ -218,6 +237,7 @@ export function ResultScreen({
                   placeholder="Uw e-mailadres"
                   required
                   disabled={status === "loading"}
+                  onFocus={handleEmailFocus}
                   className="h-12 w-full rounded-xl border-2 border-gray-200 bg-white px-4 text-base text-[#1a1a2e] transition-all duration-200 placeholder:text-gray-400 hover:border-gray-300 focus:border-[#2E5E4E] focus:outline-none focus:ring-4 focus:ring-[#2E5E4E]/10 disabled:opacity-60"
                 />
                 <label className="flex cursor-pointer items-start gap-2.5">
